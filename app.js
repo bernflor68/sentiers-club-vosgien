@@ -179,13 +179,24 @@
   var highlightLayer = null;
   var currentHighlightRelIdx = null;
 
+  // Served from the repo's raw content (not the app's own server) because the
+  // file is too large for some free static-hosting build/disk limits;
+  // raw.githubusercontent.com sends CORS headers and is reliable regardless
+  // of where this app itself is deployed.
+  var NETWORK_DATA_URL = "https://raw.githubusercontent.com/bernflor68/sentiers-club-vosgien/master/data/network.json.gz";
+
   loadNetwork();
 
   function loadNetwork() {
-    fetch("data/network.json")
+    fetch(NETWORK_DATA_URL)
       .then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);
-        return r.json();
+        if (typeof DecompressionStream === "function") {
+          return new Response(r.body.pipeThrough(new DecompressionStream("gzip"))).json();
+        }
+        return r.arrayBuffer().then(function (buf) {
+          throw new Error("navigateur trop ancien (DecompressionStream indisponible)");
+        });
       })
       .then(function (data) {
         NET = {
