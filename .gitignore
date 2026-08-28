@@ -1,0 +1,4 @@
+node_modules/
+data/network.json
+.DS_Store
+.claude/

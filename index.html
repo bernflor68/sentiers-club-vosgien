@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sentiers Club Vosgien — Carte IGN</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+  <aside id="panel">
+    <header>
+      <h1>Sentiers du Club Vosgien</h1>
+      <p class="subtitle">GR5, GR53, GR531-534 et tout le réseau local (PR) — Vosges &amp; Alsace</p>
+    </header>
+
+    <section class="block">
+      <div id="waypoints-container"></div>
+      <button id="add-stage" class="btn btn-outline add-stage-btn">+ Ajouter une étape</button>
+      <button id="reset" class="btn btn-outline" style="margin-top: 8px; width: 100%;">✕ Réinitialiser</button>
+      <p class="hint">Astuce : un point n'a pas besoin d'être sur un sentier (parking, village, domicile…) — l'appli rejoint le réseau balisé par le chemin le plus direct, puis privilégie les sentiers du Club Vosgien dès que possible.</p>
+    </section>
+
+    <section class="block">
+      <label for="trail-search-input">Identifier un sentier par nom</label>
+      <div class="autocomplete">
+        <input id="trail-search-input" type="text" placeholder="GR5, PR jaune…" autocomplete="off" />
+        <ul id="trail-search-suggestions" class="suggestions"></ul>
+      </div>
+      <button id="identify-toggle" class="btn btn-outline" style="margin-top: 8px; width: 100%;">🔍 Ou cliquer sur un sentier sur la carte</button>
+      <p class="hint">La surbrillance affiche le tracé complet du sentier choisi (nom, balisage, distance totale). Cliquez ailleurs sur la carte pour l'effacer.</p>
+    </section>
+
+    <section class="block">
+      <label for="ferme-select">Fermes-auberges</label>
+      <select id="ferme-select">
+        <option value="">— Choisir une ferme-auberge —</option>
+      </select>
+      <p class="hint">Elles sont aussi affichées sur la carte (🍴) : cliquez dessus pour voir les infos, ou choisissez-en une ici pour vous y rendre directement.</p>
+    </section>
+
+    <section id="result" class="block result hidden">
+      <h2>Itinéraire</h2>
+      <div class="stat-grid">
+        <div class="stat"><span class="stat-value" id="stat-distance">–</span><span class="stat-label">distance</span></div>
+        <div class="stat"><span class="stat-value" id="stat-time">–</span><span class="stat-label">temps estimé</span></div>
+        <div class="stat up"><span class="stat-value" id="stat-up">–</span><span class="stat-label">D+ montée</span></div>
+        <div class="stat down"><span class="stat-value" id="stat-down">–</span><span class="stat-label">D- descente</span></div>
+      </div>
+      <div id="elevation-profile"></div>
+      <div id="itinerary-breakdown"></div>
+      <div class="actions">
+        <button id="export-gpx" class="btn btn-primary">⬇ Exporter en GPX</button>
+      </div>
+      <p id="elev-status" class="hint"></p>
+    </section>
+
+    <footer>
+      <p>Fond de carte : <a href="https://www.geoportail.gouv.fr/" target="_blank" rel="noopener">IGN Géoplateforme</a> (Plan IGN v2 / Photographies aériennes), sans clé d'API.</p>
+      <p>Sentiers et chemins : <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a> contributeurs (licence ODbL) — réseau balisé Club Vosgien (2843 itinéraires GR + PR) complété par les chemins et petites routes environnants pour les liaisons hors sentier.</p>
+    </footer>
+  </aside>
+
+  <main id="map">
+    <div id="loading-overlay">
+      <div class="loading-box">
+        <div class="spinner"></div>
+        <p>Chargement du réseau (sentiers + chemins d'accès)…</p>
+        <p class="loading-sub" id="loading-progress">Environ 20 Mo — une vingtaine de secondes.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data/fermes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
