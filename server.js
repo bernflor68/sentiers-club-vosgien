@@ -14,53 +14,57 @@ const types = {
   ".json": "application/json",
 };
 
+function stat(p) {
+  return new Promise((resolve) => {
+    fs.stat(p, (err, s) => resolve(err ? null : s));
+  });
+}
+
 http
-  .createServer((req, res) => {
-    let p = decodeURIComponent(req.url.split("?")[0]);
-    if (p === "/") p = "/index.html";
-    let filePath = path.join(root, p);
-    if (!filePath.startsWith(root)) {
-      res.writeHead(403);
-      res.end("Forbidden");
-      return;
-    }
+  .createServer(async (req, res) => {
+    try {
+      let p = decodeURIComponent(req.url.split("?")[0]);
+      if (p === "/") p = "/index.html";
+      let filePath = path.join(root, p);
+      if (!filePath.startsWith(root)) {
+        res.writeHead(403);
+        res.end("Forbidden");
+        return;
+      }
 
-    const acceptsGzip = (req.headers["accept-encoding"] || "").includes("gzip");
-    const gzPath = filePath + ".gz";
-    const hasGz = fs.existsSync(gzPath);
-    const hasRaw = fs.existsSync(filePath);
-    const ext = path.extname(filePath);
-    const contentType = types[ext] || "application/octet-stream";
+      const acceptsGzip = (req.headers["accept-encoding"] || "").includes("gzip");
+      const gzPath = filePath + ".gz";
+      const ext = path.extname(filePath);
+      const contentType = types[ext] || "application/octet-stream";
 
-    if (!hasGz && !hasRaw) {
-      res.writeHead(404);
-      res.end("Not found: " + p);
-      return;
-    }
+      const [gzStat, rawStat] = await Promise.all([stat(gzPath), stat(filePath)]);
 
-    // Serve the compressed variant whenever it exists (only the .gz is kept
-    // for the large network file, to stay well under GitHub's file-size
-    // limits) — decompress on the fly for the rare client without gzip support.
-    if (hasGz && acceptsGzip) {
-      res.writeHead(200, { "Content-Type": contentType, "Content-Encoding": "gzip" });
-      fs.createReadStream(gzPath).pipe(res);
-      return;
-    }
-
-    if (hasGz && !hasRaw) {
-      res.writeHead(200, { "Content-Type": contentType });
-      fs.createReadStream(gzPath).pipe(zlib.createGunzip()).pipe(res);
-      return;
-    }
-
-    fs.readFile(filePath, (err, data) => {
-      if (err) {
+      if (!gzStat && !rawStat) {
         res.writeHead(404);
         res.end("Not found: " + p);
         return;
       }
-      res.writeHead(200, { "Content-Type": contentType });
-      res.end(data);
-    });
+
+      // Serve the compressed variant whenever it exists (only the .gz is kept
+      // for the large network file, to stay well under GitHub's file-size
+      // limits) — decompress on the fly for the rare client without gzip support.
+      if (gzStat && acceptsGzip) {
+        res.writeHead(200, { "Content-Type": contentType, "Content-Encoding": "gzip", "Content-Length": gzStat.size });
+        fs.createReadStream(gzPath).pipe(res);
+        return;
+      }
+
+      if (gzStat && !rawStat) {
+        res.writeHead(200, { "Content-Type": contentType });
+        fs.createReadStream(gzPath).pipe(zlib.createGunzip()).pipe(res);
+        return;
+      }
+
+      res.writeHead(200, { "Content-Type": contentType, "Content-Length": rawStat.size });
+      fs.createReadStream(filePath).pipe(res);
+    } catch (err) {
+      res.writeHead(500);
+      res.end("Server error: " + err.message);
+    }
   })
   .listen(port, host, () => console.log("App running on http://" + host + ":" + port));
